@@ -92,3 +92,150 @@ void append_kxml_to_tree (CkppModelTreeShPtr tree, const char *filename) {
 
 	parseFile (filename, parser, registry, tree);
 }
+
+CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree) {
+  // Assuming there is one robot in the model tree, retrieve it.
+  assert (tree->deviceNode ()->countChildComponents () == 1
+	  && "Wrong number of devices in model tree, expected 1.");
+
+  CkppDeviceComponentShPtr robot
+    = KIT_DYNAMIC_PTR_CAST (CkppDeviceComponent,
+			    tree->deviceNode ()->childComponent (0));
+  assert (!!robot && "Null pointer to robot.");
+
+	return robot;
+}
+
+void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot) {
+  // A body of the robot is said to be in collision if any of the
+  // outer objects collide with any of the inner objects. Usually you
+  // have only one inner objet, and multiple outer objects, such as
+  // objects from the environment, or other bodies of the same robot.
+
+  // Store all geometry component references of device to avoid adding
+  // them as outer objects. This will allows us later on to add only
+  // obstacles. Self-collision pairs can be then defined separately.
+	std::vector<CkppSolidComponentRefShPtr> solidComponentRefVector;
+	robot->getSolidComponentRefVector (solidComponentRefVector);
+
+	// Add all activated obstacles in model tree as outer objects of
+	// each joint body.
+	for (unsigned i = 0;
+			i < tree->geometryNode ()->countChildComponents ();
+			++i)
+	{
+		CkppSolidComponentShPtr solidComponent
+			= KIT_DYNAMIC_PTR_CAST (CkppSolidComponent,
+					tree->geometryNode ()->childComponent (i));
+		assert (!!solidComponent && "Null pointer to solidComponent.");
+
+		unsigned j = 0;
+		bool isSolidComponentInRobot = false;
+		while (j < solidComponentRefVector.size ()
+				&& isSolidComponentInRobot == false)
+		{
+			CkppSolidComponentShPtr robotSolidComponent
+				= solidComponentRefVector[j]->referencedSolidComponent ();
+			assert (!!robotSolidComponent
+					&& "Null pointer to robot solid component.");
+			if (robotSolidComponent == solidComponent)
+			{
+				std::cout << "solid component '" << robotSolidComponent->name()
+					<< "' matches body in joint " << j << std::endl;
+				isSolidComponentInRobot = true;
+			}
+			++j;
+		}
+
+		CkwsDevice::TJointVector jointVector;
+		robot->getJointVector (jointVector);
+
+		if (!isSolidComponentInRobot && solidComponent->isActivated ())
+			for (unsigned j = 0; j < jointVector.size (); ++j)
+			{
+				std::cout << "Adding solid (name = '" << solidComponent->name () << "') to joint index: " << j << std::endl;
+
+				CkcdObjectShPtr object
+					= KIT_DYNAMIC_PTR_CAST (CkcdObject,
+							solidComponent);
+				assert (!!object && "Null pointer to object.");
+
+				assert (!!jointVector[j]->attachedBody ()
+						&& "Null pointer to attached body.");
+				CkwsKCDBodyShPtr body
+					= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
+							jointVector[j]->attachedBody ());
+				assert (!!body && "Null pointer to body.");
+				std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
+				outerObjects.push_back (object);
+				body->outerObjects (outerObjects);
+			}
+	}
+}
+
+void setup_collision_pairs_robot_robot (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot) {
+	std::vector<CkppSolidComponentRefShPtr> solidComponentRefVector;
+	robot->getSolidComponentRefVector (solidComponentRefVector);
+
+	// To avoid self-collision, add robot bodies as outer bodies. Here
+	// we add all collision pairs. This is optional, and it may be nice
+	// to find automatically which collision pairs should be taken into
+	// consideration.
+	for (unsigned i = 0; i < solidComponentRefVector.size (); ++i)
+	{
+		CkppSolidComponentShPtr robotSolidComponent1
+			= solidComponentRefVector[i]->referencedSolidComponent ();
+		assert (!!robotSolidComponent1
+				&& "Null pointer to robot solid component 1.");
+		if (robotSolidComponent1->isActivated ())
+		{
+			CkwsDevice::TJointVector jointVector;
+			robot->getJointVector (jointVector);
+			CkwsKCDBodyShPtr body
+				= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
+						jointVector[i]->attachedBody ());
+			std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
+
+			for (unsigned j = i + 2; j < solidComponentRefVector.size (); ++j)
+			{
+				CkppSolidComponentShPtr robotSolidComponent
+					= solidComponentRefVector[j]->referencedSolidComponent ();
+				assert (!!robotSolidComponent
+						&& "Null pointer to robot solid component.");
+				if (robotSolidComponent->isActivated ())
+				{
+					CkcdObjectShPtr robotObject
+						= KIT_DYNAMIC_PTR_CAST (CkcdObject,
+								robotSolidComponent);
+					assert (!!robotObject
+							&& "Null pointer to robot object.");
+					outerObjects.push_back (robotObject);
+				}
+			}
+
+			body->outerObjects (outerObjects);
+		}
+	}
+}
+
+void print_robot_collision_pairs (CkppDeviceComponentShPtr robot) {
+  // Print inner and outer objects for each joint of the robot.
+  CkwsDevice::TJointVector jointVector;
+  robot->getJointVector (jointVector);
+  for (unsigned i = 0; i < jointVector.size (); ++i)
+    {
+      std::cout << "Joint " << i << std::endl;
+      CkwsKCDBodyShPtr body
+	= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
+				jointVector[i]->attachedBody ());
+      assert (!!body && "Null pointer to body.");
+
+      std::vector<CkcdObjectShPtr> innerObjects = body->innerObjects ();
+      std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
+
+      std::cout << "Number of inner objects: "
+		<< innerObjects.size () << std::endl;
+      std::cout << "Number of outer objects: "
+		<< outerObjects.size () << std::endl;
+    }
+}

@@ -1,3 +1,5 @@
+PROJECT ("kukaplan" CXX)
+
 # Requires at least CMake 2.6 to configure the package.
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
@@ -26,7 +28,16 @@ ADD_REQUIRED_DEPENDENCY("KineoController >= 2.06")
 
 PKG_CONFIG_APPEND_LIBS(${PROJECT_NAME})
 
+SET ( KINEO_ADDON_SOURCES ./src/kukaplan.cc)
+
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(tests)
 
+
+KINEO_ADDON(kukaplan)
+PKG_CONFIG_USE_DEPENDENCY(kukaplan KineoController)
+
 SETUP_PROJECT_FINALIZE()
+
+
+

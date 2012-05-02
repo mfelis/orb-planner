@@ -12,16 +12,18 @@ ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN)
 # This macro will create a binary from `NAME.cc', link it against
 # Boost and add it to the test suite.
 #
+
 MACRO(ADD_TESTCASE NAME)
   ADD_EXECUTABLE(${NAME} ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cc)
   ADD_TEST(${NAME} ${RUNTIME_OUTPUT_DIRECTORY}/${NAME})
-
-  PKG_CONFIG_USE_DEPENDENCY(${NAME} KineoController)
+	PKG_CONFIG_USE_DEPENDENCY(${NAME} KineoController)
 
   # Link against package library.
   TARGET_LINK_LIBRARIES(${NAME} 
     ${Boost_LIBRARIES}
-    ${PROJECT_NAME})
+    ${PROJECT_NAME}
+		kukaplan
+		)
 ENDMACRO(ADD_TESTCASE)
 
 # Generated test.
@@ -30,3 +32,6 @@ KINEO_STANDALONE(plan)
 
 ADD_TESTCASE(plan-test)
 KINEO_STANDALONE(plan-test)
+
+ADD_TESTCASE(plan-capsule)
+KINEO_STANDALONE(plan-capsule)
