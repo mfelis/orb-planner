@@ -95,20 +95,14 @@ BOOST_AUTO_TEST_CASE (plan)
 
   CkppModelTreeShPtr modelTree = CkppModelTree::create ();
 
-  parseFile (obstacleFilename,
-  	     parser,
-  	     registry,
-  	     modelTree);
+  parseFile (obstacleFilename, parser, registry, modelTree);
 
   // ----------------------------------------------------------------
 
   // Load a robot in the same scene.
   std::string robotFilename(ORB_PLANNER_ROBOT_FILE);
 
-  parseFile (robotFilename,
-  	     parser,
-  	     registry,
-  	     modelTree);
+  parseFile (robotFilename, parser, registry, modelTree);
 
   printComponent (modelTree);
 
