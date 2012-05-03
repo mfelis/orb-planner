@@ -398,6 +398,38 @@ bool kukaplan_plan_path (const std::vector<std::vector< double > > &configuratio
 	return found_path;
 }
 
+bool kukaplan_optimize_path (const std::vector<std::vector< double > > &configurations_in, std::vector<std::vector< double> > &optimized_path_out) {
+	assert (robot);
+	bool optimize_success = false;
+
+	CkwsPathShPtr path = create_path (robot, configurations_in);
+	if (robot->pathValidators()->validate(*path) == false) {
+		std::cout << "Warning: cannot optimize invalid path!" << endl;
+		return false;
+	}
+
+	CkwsPathShPtr optimized_path = CkwsPath::createCopy(path);
+
+	CkwsRandomOptimizerShPtr optimizer = CkwsRandomOptimizer::create ();
+
+	if (KD_OK == optimizer->optimizePath(optimized_path)) {
+		optimize_success = true;
+	}
+
+	optimized_path_out.clear();
+	for (unsigned int i = 0; i < optimized_path->countConfigurations(); ++i) {
+		CkwsConfig config (robot);
+		optimized_path->getConfiguration (i, config);
+		std::vector<double> dof_config(robot->countDofs());
+
+		for (unsigned int j = 0; j < config.size(); ++j) {
+			dof_config[j] = config.dofValue(j);
+		}
+		optimized_path_out.push_back(dof_config);
+	}
+
+	return optimize_success;
+}
 
 
 }
