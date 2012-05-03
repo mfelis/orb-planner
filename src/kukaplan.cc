@@ -40,12 +40,6 @@
 #define KINEODEVICEBASE_SO KINEO_INSTALL_DIR"/bin/modulesd/KineoDeviceBased.so"
 #define KINEODEVICE_SO KINEO_INSTALL_DIR"/bin/modulesd/KineoDeviced.so"
 
-// Define path to the files that should be loaded
-#define ORB_PLANNER_DIR "/home/mfelis/local/src/orb-planner"
-
-#define ORB_PLANNER_ROBOT_FILE ORB_PLANNER_DIR"/data/KUKA_sixx850.kxml"
-#define ORB_PLANNER_OBSTACLE_FILE ORB_PLANNER_DIR"/data/test_planning_only_obstacles.kxml"
-
 using namespace std;
 
 bool initialize_kineo(bool verbose) {
@@ -173,7 +167,7 @@ void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDevic
 	}
 }
 
-void setup_collision_pairs_robot_robot (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot) {
+void setup_collision_pairs_robot_robot (CkppDeviceComponentShPtr robot) {
 	std::vector<CkppSolidComponentRefShPtr> solidComponentRefVector;
 	robot->getSolidComponentRefVector (solidComponentRefVector);
 
@@ -218,24 +212,79 @@ void setup_collision_pairs_robot_robot (CkppModelTreeShPtr tree, CkppDeviceCompo
 	}
 }
 
+void setup_robot_steering_method (CkppDeviceComponentShPtr robot) {
+  // Create linear steering method. A direct path created with this
+  // steering method uses linear interpolation to compute a
+  // configuration between the direct path start and end
+  // configuration.
+  CkwsSteeringMethodShPtr steeringMethod = CkwsSMLinear::create ();
+  robot->steeringMethod (steeringMethod);
+}
+
+CkwsDiffusingRdmBuilderShPtr create_roadmap_builder (CkppDeviceComponentShPtr robot) {
+  // Create roadmap builder, i.e. the motion planning algorithm.
+  CkwsRoadmapShPtr roadmap = CkwsRoadmap::create (robot);
+  CkwsDiffusingRdmBuilderShPtr roadmapBuilder = CkwsDiffusingRdmBuilder::create (roadmap);
+  roadmapBuilder->diffuseFromProblemGoal (true);
+
+	return roadmapBuilder;
+}
+
+void setup_robot_penetration (CkppDeviceComponentShPtr robot, double penetration) {
+  // Set dynamic penetration used for path collision checking. It is
+  // set to 5m by default, we set it here to 1mm. The lower the value,
+  // the more confident is collision checking, but the slower it is.
+  robot->directPathValidators ()->retrieve<CkwsValidatorDPCollision> ()->penetration (penetration);
+}
+
+CkwsPathShPtr create_direct_path (CkppDeviceComponentShPtr robot, CkwsConfig start, CkwsConfig goal) {
+  assert (!goal.isEquivalent (start) && "Goal and start config are equivalent, must be different.");
+
+  // Create initial path from start and goal configurations.
+  CkwsPathShPtr initPath = CkwsPath::create (robot);
+  CkwsConfigShPtr startConfigShPtr = CkwsConfig::create (start);
+  CkwsConfigShPtr goalConfigShPtr = CkwsConfig::create (goal);
+	
+  assert (!!startConfigShPtr && "Null pointer to start config.");
+  assert (!!goalConfigShPtr && "Null pointer to goal config.");
+
+  initPath->appendDirectPath (startConfigShPtr, goalConfigShPtr);
+
+	return initPath;
+}
+
 void print_robot_collision_pairs (CkppDeviceComponentShPtr robot) {
-  // Print inner and outer objects for each joint of the robot.
-  CkwsDevice::TJointVector jointVector;
-  robot->getJointVector (jointVector);
-  for (unsigned i = 0; i < jointVector.size (); ++i)
-    {
-      std::cout << "Joint " << i << std::endl;
-      CkwsKCDBodyShPtr body
-	= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
-				jointVector[i]->attachedBody ());
-      assert (!!body && "Null pointer to body.");
+	// Print inner and outer objects for each joint of the robot.
+	CkwsDevice::TJointVector jointVector;
+	robot->getJointVector (jointVector);
+	for (unsigned i = 0; i < jointVector.size (); ++i)
+	{
+		std::cout << "Joint " << i << std::endl;
+		CkwsKCDBodyShPtr body
+			= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
+					jointVector[i]->attachedBody ());
+		assert (!!body && "Null pointer to body.");
 
-      std::vector<CkcdObjectShPtr> innerObjects = body->innerObjects ();
-      std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
+		std::vector<CkcdObjectShPtr> innerObjects = body->innerObjects ();
+		std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
 
-      std::cout << "Number of inner objects: "
-		<< innerObjects.size () << std::endl;
-      std::cout << "Number of outer objects: "
-		<< outerObjects.size () << std::endl;
-    }
+		std::cout << "Number of inner objects: "
+			<< innerObjects.size () << std::endl;
+		std::cout << "Number of outer objects: "
+			<< outerObjects.size () << std::endl;
+	}
+}
+
+CkwsConfig create_config (CkppDeviceComponentShPtr robot, const std::vector<double> &dof_values) {
+  CkwsConfig config (robot);
+  assert (robot->countDofs () == 6 && dof_values.size() == 6 && "Incorrect number of dofs, expected 6.");
+  config.setDofValues (dof_values);
+
+	return config;
+}
+
+bool validate_config (CkppDeviceComponentShPtr robot, CkwsConfig config) {
+	robot->configValidators()->validate(config);
+
+	return config.isValid();
 }
