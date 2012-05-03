@@ -47,6 +47,7 @@ bool initialize_kineo(bool verbose) {
   if (!CkppLicense::initialize ())
     {
       std::cout << "Failed to validate Kineo license." << std::endl;
+			exit(1);
       return false;
     }
 
@@ -100,7 +101,7 @@ CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree) {
 	return robot;
 }
 
-void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot) {
+void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot, bool verbose) {
   // A body of the robot is said to be in collision if any of the
   // outer objects collide with any of the inner objects. Usually you
   // have only one inner objet, and multiple outer objects, such as
@@ -134,8 +135,8 @@ void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDevic
 					&& "Null pointer to robot solid component.");
 			if (robotSolidComponent == solidComponent)
 			{
-				std::cout << "solid component '" << robotSolidComponent->name()
-					<< "' matches body in joint " << j << std::endl;
+				if (verbose)
+					std::cout << "solid component '" << robotSolidComponent->name() << "' matches body in joint " << j << std::endl;
 				isSolidComponentInRobot = true;
 			}
 			++j;
@@ -147,7 +148,8 @@ void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDevic
 		if (!isSolidComponentInRobot && solidComponent->isActivated ())
 			for (unsigned j = 0; j < jointVector.size (); ++j)
 			{
-				std::cout << "Adding solid (name = '" << solidComponent->name () << "') to joint index: " << j << std::endl;
+				if (verbose)
+					std::cout << "Adding solid (name = '" << solidComponent->name () << "') to joint index: " << j << std::endl;
 
 				CkcdObjectShPtr object
 					= KIT_DYNAMIC_PTR_CAST (CkcdObject,
@@ -289,6 +291,34 @@ bool validate_config (CkppDeviceComponentShPtr robot, CkwsConfig config) {
 	return config.isValid();
 }
 
+CkwsPathShPtr create_path (CkppDeviceComponentShPtr robot, const std::vector<std::vector< double > > &configurations) {
+	assert (configurations.size() > 1 && "Path must have at least 2 configurations.");
+  CkwsPathShPtr path = CkwsPath::create (robot);
+
+	// we always have to add direct paths
+	CkwsConfig start (robot);
+	CkwsConfig goal (robot);
+
+  assert (robot->countDofs () == configurations[0].size() && "Incorrect number of dofs, expected same as robot.");
+	start.setDofValues(configurations[0]);
+
+	unsigned int i = 1;
+	do {
+	  assert (robot->countDofs () == configurations[i].size() && "Incorrect number of dofs, expected same as robot.");
+		goal.setDofValues (configurations[i]);
+
+		CkwsConfigShPtr startShPtr = CkwsConfig::create(start);
+		CkwsConfigShPtr goalShPtr = CkwsConfig::create(goal);
+
+		path->appendDirectPath (startShPtr, goalShPtr);
+
+		start = goal;
+		i++;
+	} while (i < configurations.size());
+
+	return path;
+}
+
 /*******************************************************/
 
 namespace KukaPlan {
@@ -298,8 +328,9 @@ CkppDeviceComponentShPtr robot;
 CkwsDiffusingRdmBuilderShPtr roadmapBuilder;
 
 bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
-	if (!initialize_kineo(true)) {
+	if (!initialize_kineo()) {
 		std::cerr << "Failed to validate Kineo license." << std::endl;
+		exit(1);
 		return false;
 	}
 
@@ -323,29 +354,8 @@ bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
 
 bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info) {
 	assert (robot);
-	assert (robot->countDofs() == 6 && "Incorrect number of dofs, expected 6.");
-	assert (configurations.size() > 1 && "Path must have at least 2 configurations.");
 
-  CkwsPathShPtr path = CkwsPath::create (robot);
-
-	// we always have to add direct paths
-	CkwsConfig start (robot);
-	CkwsConfig goal (robot);
-
-	start.setDofValues(configurations[0]);
-
-	unsigned int i = 1;
-	do {
-		goal.setDofValues (configurations[i]);
-
-		CkwsConfigShPtr startShPtr = CkwsConfig::create(start);
-		CkwsConfigShPtr goalShPtr = CkwsConfig::create(goal);
-
-		path->appendDirectPath (startShPtr, goalShPtr);
-
-		start = goal;
-		i++;
-	} while (i < configurations.size());
+	CkwsPathShPtr path = create_path (robot, configurations);
 
 	if (robot->pathValidators()->validate(*path)) {
 		return true;
@@ -357,6 +367,37 @@ bool kukaplan_check_path (const std::vector<std::vector< double > > &configurati
 	
 	return false;
 }
+
+bool kukaplan_plan_path (const std::vector<std::vector< double > > &configurations_in, std::vector<std::vector< double> > &path_out) {
+	assert (robot);
+
+	bool found_path = false;
+
+	CkwsPathShPtr path = create_path (robot, configurations_in);
+	CkwsPathShPtr solution_path = CkwsPath::createCopy(path);
+
+	if (KD_OK == roadmapBuilder ->solveProblem (*(path->configAtStart()), *(path->configAtEnd()), solution_path))
+		found_path = true;
+	else {
+		std::cout << "ERROR" << std::endl;
+	}
+
+	path_out.clear();
+
+	for (unsigned int i = 0; i < solution_path->countConfigurations(); ++i) {
+		CkwsConfig config (robot);
+		solution_path->getConfiguration (i, config);
+		std::vector<double> dof_config(robot->countDofs());
+
+		for (unsigned int j = 0; j < config.size(); ++j) {
+			dof_config[j] = config.dofValue(j);
+		}
+		path_out.push_back(dof_config);
+	}
+
+	return found_path;
+}
+
 
 
 }
