@@ -288,3 +288,75 @@ bool validate_config (CkppDeviceComponentShPtr robot, CkwsConfig config) {
 
 	return config.isValid();
 }
+
+/*******************************************************/
+
+namespace KukaPlan {
+
+CkppModelTreeShPtr modelTree;
+CkppDeviceComponentShPtr robot;
+CkwsDiffusingRdmBuilderShPtr roadmapBuilder;
+
+bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
+	if (!initialize_kineo(true)) {
+		std::cerr << "Failed to validate Kineo license." << std::endl;
+		return false;
+	}
+
+	CkppModelTreeShPtr modelTree = CkppModelTree::create ();
+
+	append_kxml_to_tree (modelTree, robot_file);
+	append_kxml_to_tree (modelTree, scene_file);
+
+	robot = find_robot (modelTree);
+
+	setup_collision_pairs_robot_environment (modelTree, robot);
+	setup_collision_pairs_robot_robot (robot);
+
+	setup_robot_steering_method (robot);
+	setup_robot_penetration (robot, 1.0e-3);
+
+	roadmapBuilder = create_roadmap_builder (robot);
+
+	return true;
+}
+
+bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info) {
+	assert (robot);
+	assert (robot->countDofs() == 6 && "Incorrect number of dofs, expected 6.");
+	assert (configurations.size() > 1 && "Path must have at least 2 configurations.");
+
+  CkwsPathShPtr path = CkwsPath::create (robot);
+
+	// we always have to add direct paths
+	CkwsConfig start (robot);
+	CkwsConfig goal (robot);
+
+	start.setDofValues(configurations[0]);
+
+	unsigned int i = 1;
+	do {
+		goal.setDofValues (configurations[i]);
+
+		CkwsConfigShPtr startShPtr = CkwsConfig::create(start);
+		CkwsConfigShPtr goalShPtr = CkwsConfig::create(goal);
+
+		path->appendDirectPath (startShPtr, goalShPtr);
+
+		start = goal;
+		i++;
+	} while (i < configurations.size());
+
+	if (robot->pathValidators()->validate(*path)) {
+		return true;
+	}
+
+	if (info) {
+		info->collision = true;
+	}
+	
+	return false;
+}
+
+
+}
