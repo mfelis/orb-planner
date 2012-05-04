@@ -25,6 +25,7 @@ SETUP_PROJECT()
 # Declare dependencies
 SEARCH_FOR_BOOST()
 ADD_REQUIRED_DEPENDENCY("KineoController >= 2.06")
+ADD_REQUIRED_DEPENDENCY("hpp-geometry")
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(tests)
