@@ -10,8 +10,12 @@ void append_kxml_to_tree (CkppModelTreeShPtr tree, const char *filename);
 
 CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree);
 
+void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, bool verbose = false);
+void setup_collision_capsules_robot_environment (CkppDeviceComponentShPtr robot, bool verbose = false);
+
 void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot, bool verbose = false);
 void setup_collision_pairs_robot_robot (CkppDeviceComponentShPtr robot);
+
 void setup_robot_steering_method (CkppDeviceComponentShPtr robot);
 void setup_robot_penetration (CkppDeviceComponentShPtr robot, double penetration);
 

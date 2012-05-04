@@ -29,6 +29,7 @@
 #include "parser.cc"
 
 #include "kitehelper.h"
+#include "hpp/geometry/component/capsule.hh"
 
 // Define where the device loading libraries are. Make sure you load
 // the correct ones (depending on whether you're using the release or
@@ -40,32 +41,33 @@
 #define KINEODEVICE_SO KINEO_INSTALL_DIR"/bin/modulesd/KineoDeviced.so"
 
 using namespace std;
+using namespace hpp::geometry::component;
 
 namespace KiteHelper {
 
 bool initialize_kineo(bool verbose) {
-	  // Validate Kineo license.
-  if (!CkppLicense::initialize ())
-    {
-      std::cout << "Failed to validate Kineo license." << std::endl;
-			exit(1);
-      return false;
-    }
+	// Validate Kineo license.
+	if (!CkppLicense::initialize ())
+	{
+		std::cout << "Failed to validate Kineo license." << std::endl;
+		exit(1);
+		return false;
+	}
 
-  // ----------------------------------------------------------------
+	// ----------------------------------------------------------------
 
-  // Initialize module manager to allow parsing device.
-  CkppModuleManagerShPtr moduleManager = CkppModuleManager::create ();
-  moduleManager->addModuleFile (KINEODEVICEPARSING_SO);
-  moduleManager->addModuleFile (KINEODEVICEBASE_SO);
-  moduleManager->addModuleFile (KINEODEVICE_SO);
+	// Initialize module manager to allow parsing device.
+	CkppModuleManagerShPtr moduleManager = CkppModuleManager::create ();
+	moduleManager->addModuleFile (KINEODEVICEPARSING_SO);
+	moduleManager->addModuleFile (KINEODEVICEBASE_SO);
+	moduleManager->addModuleFile (KINEODEVICE_SO);
 
-  CkprParserManager::defaultManager ()->moduleManager (moduleManager);
+	CkprParserManager::defaultManager ()->moduleManager (moduleManager);
 
-  moduleManager->initializeModules ();
+	moduleManager->initializeModules ();
 
-  if (moduleManager->countModules () == 0) {
-    std::cout << "No module loaded. Are you sure you the modules paths are correct?" << std::endl;
+	if (moduleManager->countModules () == 0) {
+		std::cout << "No module loaded. Are you sure you the modules paths are correct?" << std::endl;
 	} else {
 		if (verbose) {
 			for (unsigned int i=0; i < moduleManager->countModules (); i++)
@@ -77,40 +79,66 @@ bool initialize_kineo(bool verbose) {
 }
 
 void append_kxml_to_tree (CkppModelTreeShPtr tree, const char *filename) {
-  // Create a parser instance.
-  CkprParserManagerShPtr parser = CkprParserManager::defaultManager ();
+	// Create a parser instance.
+	CkprParserManagerShPtr parser = CkprParserManager::defaultManager ();
 
-  CkppDocumentShPtr document =
-    CkppDocument::create (CkprParserManager::defaultManager()
-			  ->moduleManager ());
-  CkppComponentFactoryRegistryShPtr registry
-    = document->componentFactoryRegistry ();
+	CkppDocumentShPtr document =
+		CkppDocument::create (CkprParserManager::defaultManager()
+				->moduleManager ());
+	CkppComponentFactoryRegistryShPtr registry
+		= document->componentFactoryRegistry ();
 
 	parseFile (filename, parser, registry, tree);
 }
 
 CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree) {
-  // Assuming there is one robot in the model tree, retrieve it.
-  assert (tree->deviceNode ()->countChildComponents () == 1
-	  && "Wrong number of devices in model tree, expected 1.");
+	// Assuming there is one robot in the model tree, retrieve it.
+	assert (tree->deviceNode ()->countChildComponents () == 1
+			&& "Wrong number of devices in model tree, expected 1.");
 
-  CkppDeviceComponentShPtr robot
-    = KIT_DYNAMIC_PTR_CAST (CkppDeviceComponent,
-			    tree->deviceNode ()->childComponent (0));
-  assert (!!robot && "Null pointer to robot.");
+	CkppDeviceComponentShPtr robot
+		= KIT_DYNAMIC_PTR_CAST (CkppDeviceComponent,
+				tree->deviceNode ()->childComponent (0));
+	assert (!!robot && "Null pointer to robot.");
 
 	return robot;
 }
 
-void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot, bool verbose) {
-  // A body of the robot is said to be in collision if any of the
-  // outer objects collide with any of the inner objects. Usually you
-  // have only one inner objet, and multiple outer objects, such as
-  // objects from the environment, or other bodies of the same robot.
+void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, bool verbose) {
+	CkwsDevice::TJointVector jointVector;
+	robot->getJointVector (jointVector);
 
-  // Store all geometry component references of device to avoid adding
-  // them as outer objects. This will allows us later on to add only
-  // obstacles. Self-collision pairs can be then defined separately.
+	for (unsigned j = 0; j < jointVector.size (); ++j)
+	{
+		if (verbose)
+			std::cout << "Adding capsule to joint index: " << j << " description = " << jointVector[j]->description() <<  std::endl;
+
+//		CkcdObjectShPtr object
+//			= KIT_DYNAMIC_PTR_CAST (CkcdObject,
+//					solidComponent);
+//		assert (!!object && "Null pointer to object.");
+//
+//		assert (!!jointVector[j]->attachedBody ()
+//				&& "Null pointer to attached body.");
+//		CkwsKCDBodyShPtr body
+//			= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
+//					jointVector[j]->attachedBody ());
+//		assert (!!body && "Null pointer to body.");
+//		std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
+//		outerObjects.push_back (object);
+//		body->outerObjects (outerObjects);
+	}
+}
+
+void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot, bool verbose) {
+	// A body of the robot is said to be in collision if any of the
+	// outer objects collide with any of the inner objects. Usually you
+	// have only one inner objet, and multiple outer objects, such as
+	// objects from the environment, or other bodies of the same robot.
+
+	// Store all geometry component references of device to avoid adding
+	// them as outer objects. This will allows us later on to add only
+	// obstacles. Self-collision pairs can be then defined separately.
 	std::vector<CkppSolidComponentRefShPtr> solidComponentRefVector;
 	robot->getSolidComponentRefVector (solidComponentRefVector);
 
@@ -216,42 +244,42 @@ void setup_collision_pairs_robot_robot (CkppDeviceComponentShPtr robot) {
 }
 
 void setup_robot_steering_method (CkppDeviceComponentShPtr robot) {
-  // Create linear steering method. A direct path created with this
-  // steering method uses linear interpolation to compute a
-  // configuration between the direct path start and end
-  // configuration.
-  CkwsSteeringMethodShPtr steeringMethod = CkwsSMLinear::create ();
-  robot->steeringMethod (steeringMethod);
+	// Create linear steering method. A direct path created with this
+	// steering method uses linear interpolation to compute a
+	// configuration between the direct path start and end
+	// configuration.
+	CkwsSteeringMethodShPtr steeringMethod = CkwsSMLinear::create ();
+	robot->steeringMethod (steeringMethod);
 }
 
 CkwsDiffusingRdmBuilderShPtr create_roadmap_builder (CkppDeviceComponentShPtr robot) {
-  // Create roadmap builder, i.e. the motion planning algorithm.
-  CkwsRoadmapShPtr roadmap = CkwsRoadmap::create (robot);
-  CkwsDiffusingRdmBuilderShPtr roadmapBuilder = CkwsDiffusingRdmBuilder::create (roadmap);
-  roadmapBuilder->diffuseFromProblemGoal (true);
+	// Create roadmap builder, i.e. the motion planning algorithm.
+	CkwsRoadmapShPtr roadmap = CkwsRoadmap::create (robot);
+	CkwsDiffusingRdmBuilderShPtr roadmapBuilder = CkwsDiffusingRdmBuilder::create (roadmap);
+	roadmapBuilder->diffuseFromProblemGoal (true);
 
 	return roadmapBuilder;
 }
 
 void setup_robot_penetration (CkppDeviceComponentShPtr robot, double penetration) {
-  // Set dynamic penetration used for path collision checking. It is
-  // set to 5m by default, we set it here to 1mm. The lower the value,
-  // the more confident is collision checking, but the slower it is.
-  robot->directPathValidators ()->retrieve<CkwsValidatorDPCollision> ()->penetration (penetration);
+	// Set dynamic penetration used for path collision checking. It is
+	// set to 5m by default, we set it here to 1mm. The lower the value,
+	// the more confident is collision checking, but the slower it is.
+	robot->directPathValidators ()->retrieve<CkwsValidatorDPCollision> ()->penetration (penetration);
 }
 
 CkwsPathShPtr create_direct_path (CkppDeviceComponentShPtr robot, CkwsConfig start, CkwsConfig goal) {
-  assert (!goal.isEquivalent (start) && "Goal and start config are equivalent, must be different.");
+	assert (!goal.isEquivalent (start) && "Goal and start config are equivalent, must be different.");
 
-  // Create initial path from start and goal configurations.
-  CkwsPathShPtr initPath = CkwsPath::create (robot);
-  CkwsConfigShPtr startConfigShPtr = CkwsConfig::create (start);
-  CkwsConfigShPtr goalConfigShPtr = CkwsConfig::create (goal);
-	
-  assert (!!startConfigShPtr && "Null pointer to start config.");
-  assert (!!goalConfigShPtr && "Null pointer to goal config.");
+	// Create initial path from start and goal configurations.
+	CkwsPathShPtr initPath = CkwsPath::create (robot);
+	CkwsConfigShPtr startConfigShPtr = CkwsConfig::create (start);
+	CkwsConfigShPtr goalConfigShPtr = CkwsConfig::create (goal);
 
-  initPath->appendDirectPath (startConfigShPtr, goalConfigShPtr);
+	assert (!!startConfigShPtr && "Null pointer to start config.");
+	assert (!!goalConfigShPtr && "Null pointer to goal config.");
+
+	initPath->appendDirectPath (startConfigShPtr, goalConfigShPtr);
 
 	return initPath;
 }
@@ -279,9 +307,9 @@ void print_robot_collision_pairs (CkppDeviceComponentShPtr robot) {
 }
 
 CkwsConfig create_config (CkppDeviceComponentShPtr robot, const std::vector<double> &dof_values) {
-  CkwsConfig config (robot);
-  assert (robot->countDofs () == 6 && dof_values.size() == 6 && "Incorrect number of dofs, expected 6.");
-  config.setDofValues (dof_values);
+	CkwsConfig config (robot);
+	assert (robot->countDofs () == 6 && dof_values.size() == 6 && "Incorrect number of dofs, expected 6.");
+	config.setDofValues (dof_values);
 
 	return config;
 }
@@ -294,18 +322,18 @@ bool validate_config (CkppDeviceComponentShPtr robot, CkwsConfig config) {
 
 CkwsPathShPtr create_path (CkppDeviceComponentShPtr robot, const std::vector<std::vector< double > > &configurations) {
 	assert (configurations.size() > 1 && "Path must have at least 2 configurations.");
-  CkwsPathShPtr path = CkwsPath::create (robot);
+	CkwsPathShPtr path = CkwsPath::create (robot);
 
 	// we always have to add direct paths
 	CkwsConfig start (robot);
 	CkwsConfig goal (robot);
 
-  assert (robot->countDofs () == configurations[0].size() && "Incorrect number of dofs, expected same as robot.");
+	assert (robot->countDofs () == configurations[0].size() && "Incorrect number of dofs, expected same as robot.");
 	start.setDofValues(configurations[0]);
 
 	unsigned int i = 1;
 	do {
-	  assert (robot->countDofs () == configurations[i].size() && "Incorrect number of dofs, expected same as robot.");
+		assert (robot->countDofs () == configurations[i].size() && "Incorrect number of dofs, expected same as robot.");
 		goal.setDofValues (configurations[i]);
 
 		CkwsConfigShPtr startShPtr = CkwsConfig::create(start);

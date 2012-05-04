@@ -17,6 +17,7 @@ MACRO(ADD_TESTCASE NAME)
   ADD_EXECUTABLE(${NAME} ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cc)
   ADD_TEST(${NAME} ${RUNTIME_OUTPUT_DIRECTORY}/${NAME})
 	PKG_CONFIG_USE_DEPENDENCY(${NAME} KineoController)
+	PKG_CONFIG_USE_DEPENDENCY(${NAME} hpp-geometry)
 
   # Link against package library.
   TARGET_LINK_LIBRARIES(${NAME} 
@@ -32,8 +33,8 @@ KINEO_STANDALONE(plan)
 ADD_TESTCASE(plan-test)
 KINEO_STANDALONE(plan-test)
 
-ADD_TESTCASE(plan-capsule)
-KINEO_STANDALONE(plan-capsule)
+ADD_TESTCASE(kukaplan-capsule-test)
+KINEO_STANDALONE(kukaplan-capsule-test)
 
-ADD_TESTCASE(kukaplan-test)
-KINEO_STANDALONE(kukaplan-test)
+# ADD_TESTCASE(kukaplan-test)
+# KINEO_STANDALONE(kukaplan-test)

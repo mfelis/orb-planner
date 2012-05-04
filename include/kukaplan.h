@@ -18,6 +18,10 @@ struct PathQueryInformation {
 /** \brief Initializes the path planner and sets up the scene. */
 bool kukaplan_initialize(const char* robot_file, const char* scene_file);
 
+/** \brief Initializes the path planner and sets up the scene but uses
+ * capsules instead of the actual robot geometry. */
+bool kukaplan_initialize_capsules(const char* robot_file, const char* scene_file);
+
 bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info = NULL);
 
 /** \brief Plans a collision free using an initial guess. */

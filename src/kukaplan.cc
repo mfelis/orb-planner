@@ -65,6 +65,32 @@ bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
 	return true;
 }
 
+bool kukaplan_initialize_capsules(const char* robot_file, const char* scene_file) {
+	if (!initialize_kineo()) {
+		std::cerr << "Failed to validate Kineo license." << std::endl;
+		exit(1);
+		return false;
+	}
+
+	CkppModelTreeShPtr modelTree = CkppModelTree::create ();
+
+	append_kxml_to_tree (modelTree, robot_file);
+	append_kxml_to_tree (modelTree, scene_file);
+
+	robot = find_robot (modelTree);
+
+	setup_collision_capsules_robot_robot (robot, true);
+//	setup_collision_pairs_robot_environment (modelTree, robot);
+
+	setup_robot_steering_method (robot);
+	setup_robot_penetration (robot, 1.0e-3);
+
+	roadmapBuilder = create_roadmap_builder (robot);
+
+	return true;
+}
+
+
 bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info) {
 	assert (robot);
 
