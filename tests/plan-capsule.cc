@@ -31,9 +31,10 @@
 #include <kwsKcd2/kwsKCDBody.h>
 
 #include "parser.cc"
-#include "kukaplan.h"
+#include "kitehelper.h"
 
 using boost::test_tools::output_test_stream;
+using namespace KiteHelper;
 
 // Define path to the files that should be loaded
 #define ORB_PLANNER_DIR "/home/mfelis/local/src/orb-planner"
