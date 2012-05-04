@@ -26,15 +26,14 @@ SETUP_PROJECT()
 SEARCH_FOR_BOOST()
 ADD_REQUIRED_DEPENDENCY("KineoController >= 2.06")
 
-PKG_CONFIG_APPEND_LIBS(${PROJECT_NAME})
-
-SET ( KINEO_ADDON_SOURCES ./src/kukaplan.cc ./src/kitehelper.cc)
-
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(tests)
 
-KINEO_ADDON(kukaplan)
-PKG_CONFIG_USE_DEPENDENCY(kukaplan KineoController)
+# SET ( KINEO_ADDON_SOURCES ./src/kukaplan.cc ./src/kitehelper.cc)
+# KINEO_ADDON(kukaplan)
+# PKG_CONFIG_USE_DEPENDENCY(kukaplan KineoController)
+
+PKG_CONFIG_APPEND_LIBS(${PROJECT_NAME})
 
 SETUP_PROJECT_FINALIZE()
 
