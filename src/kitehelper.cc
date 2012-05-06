@@ -104,14 +104,37 @@ CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree) {
 	return robot;
 }
 
-void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, bool verbose) {
-	CkwsDevice::TJointVector jointVector;
-	robot->getJointVector (jointVector);
+void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, std::map<std::string, CapsuleShPtr> jointNameCapsuleMap, bool verbose) {
+	std::vector<CkppJointComponentShPtr> jointVector;
+	robot->getJointComponentVector (jointVector);
 
 	for (unsigned j = 0; j < jointVector.size (); ++j)
 	{
+		if (verbose) {
+			std::cout << "Processing joint: " << j << " name = " << jointVector[j]->name() <<  std::endl;
+
+			std::vector<CkppSolidComponentRefShPtr> solidVector;
+			jointVector[j]->getSolidComponentRefVector (solidVector);
+
+			for (unsigned int si = 0; si < solidVector.size(); si++) {
+				std::cout << "  found solid " << solidVector[si]->name() << std::endl;
+			}
+		}
+
+		string capsule_name = jointVector[j]->name();
+		if (capsule_name.size() >= 2 && capsule_name[0] == 'A')
+			capsule_name[0] = 'B';
+
+		CapsuleShPtr capsule = jointNameCapsuleMap[capsule_name];
+		if (capsule == NULL) {
+			if (verbose)
+				std::cout << "Warning: did not find capsule for joint " << jointVector[j]->name() << std::endl;
+			continue;
+		}
+
 		if (verbose)
-			std::cout << "Adding capsule to joint index: " << j << " description = " << jointVector[j]->description() <<  std::endl;
+			std::cout << "  adding capsule " << capsule_name << " to solid components." << std::endl;
+		jointVector[j]->addSolidComponentRef (CkppSolidComponentRef::create(capsule));
 
 //		CkcdObjectShPtr object
 //			= KIT_DYNAMIC_PTR_CAST (CkcdObject,

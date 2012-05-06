@@ -2,6 +2,7 @@
 #define _KITEHELPER_H
 
 #include <KineoModel/KineoModel.h>
+#include <hpp/geometry/component/capsule.hh>
 
 namespace KiteHelper {
 
@@ -10,7 +11,10 @@ void append_kxml_to_tree (CkppModelTreeShPtr tree, const char *filename);
 
 CkppDeviceComponentShPtr find_robot (CkppModelTreeShPtr tree);
 
-void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, bool verbose = false);
+void setup_collision_capsules_robot_robot (
+		CkppDeviceComponentShPtr robot,
+		std::map<std::string, hpp::geometry::component::CapsuleShPtr> jointNameCapsuleMap,
+		bool verbose);
 void setup_collision_capsules_robot_environment (CkppDeviceComponentShPtr robot, bool verbose = false);
 
 void setup_collision_pairs_robot_environment (CkppModelTreeShPtr tree, CkppDeviceComponentShPtr robot, bool verbose = false);
