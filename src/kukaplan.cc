@@ -157,16 +157,22 @@ bool kukaplan_initialize_capsules(const char* robot_file, const char* scene_file
 	return true;
 }
 
-bool validate_configurations (const std::vector<std::vector< double > > &configurations, unsigned int *index_out) {
+bool kukaplan_validate_configuration (const std::vector<double> &configuration) {
 	assert (robot);
-	CkwsPathShPtr path = create_path (robot, configurations);
 
-	for (unsigned int i = 0; path->countConfigurations(); i++) {
-		CkwsConfig config(NULL);
-		if (KD_OK != path->getConfiguration(i, config)) {
-			std::cerr << "Error getting path configuration at index " << i << endl;
-			abort();
-		}
+	CkwsConfig config = create_config (robot, configuration);
+
+	if (!validate_config (robot, config))
+		return false;
+
+	return true;
+}
+
+bool kukaplan_validate_configurations (const std::vector<std::vector< double > > &configurations, unsigned int *index_out) {
+	assert (robot);
+
+	for (unsigned int i = 0; i < configurations.size(); i++) {
+		CkwsConfig config = create_config (robot, configurations[i]);
 
 		if (!validate_config (robot, config)) {
 			if (index_out)

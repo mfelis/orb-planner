@@ -22,8 +22,17 @@ bool kukaplan_initialize(const char* robot_file, const char* scene_file);
  * capsules instead of the actual robot geometry. */
 bool kukaplan_initialize_capsules(const char* robot_file, const char* scene_file);
 
-/** \brief Checks whether all configurations are collision free. */
-bool validate_configurations (const std::vector<std::vector< double > > &configurations, unsigned int *index_out = NULL);
+bool kukaplan_validate_configuration (const std::vector<double> &configuration);
+
+/** \brief Checks whether all configurations are collision free.
+ *
+ * If the parameter index_out is specified and a configuration was invalid
+ * then the variable will be set to the index of the configuration that is
+ * invalid.
+ *
+ * \return true if all configurations are collision free, false otherwise
+ * */
+bool kukaplan_validate_configurations (const std::vector<std::vector< double > > &configurations, unsigned int *index_out = NULL);
 
 bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info = NULL);
 

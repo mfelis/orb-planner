@@ -353,6 +353,7 @@ CkwsPathShPtr create_path (CkppDeviceComponentShPtr robot, const std::vector<std
 		i++;
 	} while (i < configurations.size());
 
+	cout << "configurations = " << path->countConfigurations() << endl;
 	return path;
 }
 

@@ -36,6 +36,26 @@ using boost::test_tools::output_test_stream;
 using namespace KukaPlan;
 using namespace std;
 
+BOOST_AUTO_TEST_CASE (validate_configuration_zero)
+{
+	cout << "---- Entering " << __func__ << endl;
+	kukaplan_initialize(ORB_PLANNER_ROBOT_FILE, ORB_PLANNER_EMPTY_SCENE_FILE);
+
+	// Set initial pose of the robot.
+	std::vector<double> startDofValues (6, 0.);
+	startDofValues[0] = 0.;
+	startDofValues[1] = 0.;
+	startDofValues[2] = 0.;
+	startDofValues[3] = 0.;
+	startDofValues[4] = 0.;
+	startDofValues[5] = 0.;
+
+	BOOST_CHECK (kukaplan_validate_configuration (startDofValues));	
+
+	cout << "---- Exiting " << __func__ << endl;
+}
+
+/*
 BOOST_AUTO_TEST_CASE (check_direct_path_not_colliding)
 {
 	cout << "---- Entering " << __func__ << endl;
@@ -61,7 +81,7 @@ BOOST_AUTO_TEST_CASE (check_direct_path_not_colliding)
 	//  goalDofValues[5] =   0. * M_PI / 180.; 
 
 	goalDofValues[0] =   0. * M_PI / 180.; 
-	goalDofValues[1] =   10. * M_PI / 180.;
+	goalDofValues[1] =   0. * M_PI / 180.;
 	goalDofValues[2] =   0. * M_PI / 180.;
 	goalDofValues[3] =   0. * M_PI / 180.; 
 	goalDofValues[4] =   0. * M_PI / 180.; 
@@ -85,7 +105,6 @@ BOOST_AUTO_TEST_CASE (check_direct_path_not_colliding)
 	cout << "---- Exiting " << __func__ << endl;
 }
 
-/*
 BOOST_AUTO_TEST_CASE (check_direct_path)
 {
 	cout << "---- Entering " << __func__ << endl;

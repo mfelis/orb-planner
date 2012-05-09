@@ -26,7 +26,8 @@
 void parseFile (const std::string& fileName,
 		const CkprParserManagerShPtr& parser,
 		const CkppComponentFactoryRegistryShPtr& registry,
-		CkppModelTreeShPtr& modelTree);
+		CkppModelTreeShPtr& modelTree,
+		bool verbose = false);
 
 /// \brief Print a component tree hierarchy starting from a root
 /// component.
@@ -46,13 +47,15 @@ void loadPathFromFile (const std::string& fileName,
 void parseFile (const std::string& fileName,
 		const CkprParserManagerShPtr& parser,
 		const CkppComponentFactoryRegistryShPtr& registry,
-		CkppModelTreeShPtr& modelTree)
+		CkppModelTreeShPtr& modelTree,
+		bool verbose)
 {
   assert (!!modelTree && "Null pointer to modelTree.");
 
   CkppComponentShPtr parsedModelTreeComponent;
 
-  std::cout << "Parsing file..." << std::endl;
+	if (verbose)
+	  std::cout << "Parsing file..." << std::endl;
   if (parser->loadComponentFromFile (fileName,
 				     parsedModelTreeComponent,
 				     registry,
@@ -73,7 +76,8 @@ void parseFile (const std::string& fileName,
       return;
     }
 
-  std::cout << "Retrieving geometry node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving geometry node..." << std::endl;
   if (parsedModelTree->geometryNode ())
     {
       for(unsigned int i = 0;
@@ -90,7 +94,8 @@ void parseFile (const std::string& fileName,
 	}
     }
 
-  std::cout << "Retrieving group node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving group node..." << std::endl;
   if (parsedModelTree->groupNode ())
     {
       for(unsigned int i = 0;
@@ -107,7 +112,8 @@ void parseFile (const std::string& fileName,
 	}
     }
 
-  std::cout << "Retrieving device node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving device node..." << std::endl;
   if (parsedModelTree->deviceNode ())
     {
       for(unsigned int i = 0;
@@ -124,7 +130,8 @@ void parseFile (const std::string& fileName,
 	}
     }
 
-  std::cout << "Retrieving path node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving path node..." << std::endl;
   if (parsedModelTree->pathNode ())
     {
       for(unsigned int i = 0;
@@ -141,7 +148,8 @@ void parseFile (const std::string& fileName,
 	}
     }
 
-  std::cout << "Retrieving clipping plane node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving clipping plane node..." << std::endl;
   if (parsedModelTree->clippingPlaneNode ())
     {
       for(unsigned int i = 0;
@@ -159,7 +167,8 @@ void parseFile (const std::string& fileName,
 	}
     }
 
-  std::cout << "Retrieving camera node..." << std::endl;
+	if (verbose)
+	  std::cout << "Retrieving camera node..." << std::endl;
   if (parsedModelTree->cameraNode ())
     {
       for(unsigned int i = 0;
