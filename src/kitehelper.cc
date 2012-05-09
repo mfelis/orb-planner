@@ -135,21 +135,6 @@ void setup_collision_capsules_robot_robot (CkppDeviceComponentShPtr robot, std::
 		if (verbose)
 			std::cout << "  adding capsule " << capsule_name << " to solid components." << std::endl;
 		jointVector[j]->addSolidComponentRef (CkppSolidComponentRef::create(capsule));
-
-//		CkcdObjectShPtr object
-//			= KIT_DYNAMIC_PTR_CAST (CkcdObject,
-//					solidComponent);
-//		assert (!!object && "Null pointer to object.");
-//
-//		assert (!!jointVector[j]->attachedBody ()
-//				&& "Null pointer to attached body.");
-//		CkwsKCDBodyShPtr body
-//			= KIT_DYNAMIC_PTR_CAST (CkwsKCDBody,
-//					jointVector[j]->attachedBody ());
-//		assert (!!body && "Null pointer to body.");
-//		std::vector<CkcdObjectShPtr> outerObjects = body->outerObjects ();
-//		outerObjects.push_back (object);
-//		body->outerObjects (outerObjects);
 	}
 }
 
