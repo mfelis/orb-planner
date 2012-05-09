@@ -36,5 +36,5 @@ KINEO_STANDALONE(plan-test)
 ADD_TESTCASE(kukaplan-capsule-test)
 KINEO_STANDALONE(kukaplan-capsule-test)
 
-# ADD_TESTCASE(kukaplan-test)
-# KINEO_STANDALONE(kukaplan-test)
+ADD_TESTCASE(kukaplan-test)
+KINEO_STANDALONE(kukaplan-test)

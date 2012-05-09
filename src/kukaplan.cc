@@ -45,7 +45,7 @@ std::map<std::string, hpp::geometry::component::CapsuleShPtr> jointNameCapsuleMa
 bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
 	if (!initialize_kineo()) {
 		std::cerr << "Failed to validate Kineo license." << std::endl;
-		exit(1);
+		abort();
 		return false;
 	}
 
@@ -55,6 +55,11 @@ bool kukaplan_initialize(const char* robot_file, const char* scene_file) {
 	append_kxml_to_tree (modelTree, scene_file);
 
 	robot = find_robot (modelTree);
+
+	if (robot == NULL) {
+		std::cerr << "Could not find robot device!" << endl;
+		abort();
+	}
 
 	setup_collision_pairs_robot_environment (modelTree, robot);
 	setup_collision_pairs_robot_robot (robot);
@@ -152,14 +157,52 @@ bool kukaplan_initialize_capsules(const char* robot_file, const char* scene_file
 	return true;
 }
 
+bool validate_configurations (const std::vector<std::vector< double > > &configurations, unsigned int *index_out) {
+	assert (robot);
+	CkwsPathShPtr path = create_path (robot, configurations);
+
+	for (unsigned int i = 0; path->countConfigurations(); i++) {
+		CkwsConfig config(NULL);
+		if (KD_OK != path->getConfiguration(i, config)) {
+			std::cerr << "Error getting path configuration at index " << i << endl;
+			abort();
+		}
+
+		if (!validate_config (robot, config)) {
+			if (index_out)
+				*index_out = i;
+
+			return false;
+		}
+	}
+	return true;
+}
 
 bool kukaplan_check_path (const std::vector<std::vector< double > > &configurations, PathQueryInformation *info) {
 	assert (robot);
 
 	CkwsPathShPtr path = create_path (robot, configurations);
 
+	
+
+	if (path->isValid()) {
+		cerr << "path is valid" << endl;
+	}
+
+	if (path->validateWithPenetration (1.0e-3)) {
+		cerr << "  valid with penetration" << endl;
+	} else {
+		cerr << "  invalid with penetration" << endl;
+	}
+
 	if (robot->pathValidators()->validate(*path)) {
-		return true;
+	}
+	
+
+	if (path->isValid()) {
+		cerr << "     path is valid" << endl;
+	} else {
+		cerr << "     path is invalid" << endl;
 	}
 
 	if (info) {

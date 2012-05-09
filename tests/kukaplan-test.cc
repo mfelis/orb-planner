@@ -31,12 +31,64 @@ using boost::test_tools::output_test_stream;
 
 #define ORB_PLANNER_ROBOT_FILE ORB_PLANNER_DIR"/data/KUKA_sixx850.kxml"
 #define ORB_PLANNER_OBSTACLE_FILE ORB_PLANNER_DIR"/data/test_planning_only_obstacles.kxml"
+#define ORB_PLANNER_EMPTY_SCENE_FILE ORB_PLANNER_DIR"/data/empty_scene.kxml"
 
 using namespace KukaPlan;
 using namespace std;
 
+BOOST_AUTO_TEST_CASE (check_direct_path_not_colliding)
+{
+	cout << "---- Entering " << __func__ << endl;
+	kukaplan_initialize(ORB_PLANNER_ROBOT_FILE, ORB_PLANNER_EMPTY_SCENE_FILE);
+
+	// Set initial pose of the robot.
+	std::vector<double> startDofValues (6, 0.);
+	startDofValues[0] = 0.;
+	startDofValues[1] = 0.;
+	startDofValues[2] = 0.;
+	startDofValues[3] = 0.;
+	startDofValues[4] = 0.;
+	startDofValues[5] = 0.;
+
+// Set target pose of the robot.
+	std::vector<double> goalDofValues (6);
+
+	//	goalDofValues[0] =   10. * M_PI / 180.; 
+	//  goalDofValues[1] =   0. * M_PI / 180.;  
+	//  goalDofValues[2] =   0. * M_PI / 180.;
+	//  goalDofValues[3] =   0. * M_PI / 180.; 
+	//  goalDofValues[4] =   0. * M_PI / 180.; 
+	//  goalDofValues[5] =   0. * M_PI / 180.; 
+
+	goalDofValues[0] =   0. * M_PI / 180.; 
+	goalDofValues[1] =   10. * M_PI / 180.;
+	goalDofValues[2] =   0. * M_PI / 180.;
+	goalDofValues[3] =   0. * M_PI / 180.; 
+	goalDofValues[4] =   0. * M_PI / 180.; 
+	goalDofValues[5] =   0. * M_PI / 180.; 
+
+	std::vector<std::vector< double > > configurations;
+	configurations.push_back(startDofValues);
+	configurations.push_back(goalDofValues);
+
+	unsigned int validate_result = 0;
+	if (!validate_configurations (configurations, &validate_result)) {
+		cerr << "Configuration " << validate_result << " is invalid!" << endl;
+		abort();
+	}
+
+	if (kukaplan_check_path (configurations) == false) {
+		cout << "Collision!" << endl;
+	} else {
+		abort();
+	}
+	cout << "---- Exiting " << __func__ << endl;
+}
+
+/*
 BOOST_AUTO_TEST_CASE (check_direct_path)
 {
+	cout << "---- Entering " << __func__ << endl;
 	kukaplan_initialize(ORB_PLANNER_ROBOT_FILE, ORB_PLANNER_OBSTACLE_FILE);
 
 	// Set initial pose of the robot.
@@ -59,7 +111,7 @@ BOOST_AUTO_TEST_CASE (check_direct_path)
 	//  goalDofValues[5] =   0. * M_PI / 180.; 
 
 	goalDofValues[0] =   0. * M_PI / 180.; 
-	goalDofValues[1] =  -0. * M_PI / 180.;
+	goalDofValues[1] =   0. * M_PI / 180.;
 	goalDofValues[2] =   0. * M_PI / 180.;
 	goalDofValues[3] =   0. * M_PI / 180.; 
 	goalDofValues[4] =   0. * M_PI / 180.; 
@@ -71,7 +123,10 @@ BOOST_AUTO_TEST_CASE (check_direct_path)
 
 	if (!kukaplan_check_path (configurations)) {
 		cout << "Collision!" << endl;
+	} else {
+		abort();
 	}
+	cout << "---- Exiting " << __func__ << endl;
 }
 
 BOOST_AUTO_TEST_CASE (plan_triple_path)
@@ -98,7 +153,7 @@ BOOST_AUTO_TEST_CASE (plan_triple_path)
 	//  goalDofValues[5] =   0. * M_PI / 180.; 
 
 	goalDofValues[0] =   0. * M_PI / 180.; 
-	goalDofValues[1] =  -0. * M_PI / 180.;
+	goalDofValues[1] =  -92. * M_PI / 180.;
 	goalDofValues[2] =   0. * M_PI / 180.;
 	goalDofValues[3] =   0. * M_PI / 180.; 
 	goalDofValues[4] =   0. * M_PI / 180.; 
@@ -198,3 +253,4 @@ BOOST_AUTO_TEST_CASE (plan_direct_path)
 		cout << endl;
 	}
 }
+*/
